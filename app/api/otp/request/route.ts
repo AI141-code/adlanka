@@ -79,6 +79,13 @@ export async function POST(req: Request) {
     )
   }
 
+  // Delete any existing expired OTPs for this number before creating a new one
+  await supabase
+  .from('otp_codes')
+  .delete()
+  .eq('phone_number', phoneNumber)
+  .lt('expires_at', new Date().toISOString())
+
   const { error } = await supabase.from('otp_codes').insert({
     phone_number: phoneNumber,
     otp_code: otpCode,

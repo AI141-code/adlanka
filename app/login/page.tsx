@@ -188,7 +188,7 @@ export default function LoginPage() {
                         </li>
                         <li className="flex gap-2">
                           <span className="text-blue-600 font-bold">•</span>
-                          <span>Send your phone number to the bot</span>
+                          <span>Click the <strong>"Share My Number"</strong> button in the bot</span>
                         </li>
                       </ul>
                     </div>
