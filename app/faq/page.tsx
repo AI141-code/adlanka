@@ -12,40 +12,35 @@ import {
 
 const FAQ_ITEMS = [
   {
-    id: 'how-to-post',
-    question: 'How to post ads?',
-    answer: `1. Register using your Sri Lankan phone number (+94)
-2. Login using the OTP sent to your Telegram
-3. Top up your account balance by transferring money to our bank account
-4. Send the payment receipt via Telegram
-5. Admin will verify and update your balance
-6. Click "Post Ad" and fill in the details
-7. Submit your ad for review
-8. Admin will review and approve your ad
-9. Once approved, your ad will be live!`,
+    id: 'how-to-login',
+    question: 'How to login or register?',
+    answer: `1. Search for @adlanka_otp_bot on Telegram and click "Start".
+2. Share your phone number with the bot using the button provided in Telegram.
+3. Come back to AdLanka and enter your 9-digit phone number.
+4. You will receive a 6-digit OTP code instantly in the Telegram bot.
+5. Enter the code here to log in.
+
+Note: Registration and Login follow the same steps. Once you've started the bot, future logins only require entering your number here.`,
   },
   {
-    id: 'how-to-login',
-    question: 'How to login with OTP?',
-    answer: `1. Go to the Login page
-2. Enter your Sri Lankan phone number (9 digits after +94)
-3. Click Continue
-4. You will receive an OTP code via Telegram (for testing, use 123456)
-5. Enter the OTP code to verify
-6. You will be logged in automatically
-
-Note: You must have Telegram installed to receive OTP codes.`,
+    id: 'how-to-post',
+    question: 'How to post ads?',
+    answer: `1. Login/Register using the Telegram bot method.
+2. Go to your Dashboard and check your balance.
+3. If your balance is low, follow the "Top Up" steps.
+4. Click the "Post Ad" button on the header or dashboard.
+5. Fill in your ad details (Title, Price, Description, Images).
+6. Choose your Ad Type (Normal, Super, or VIP).
+7. Submit for review. Our team usually approves ads within 1-2 hours.`,
   },
   {
     id: 'how-to-topup',
     question: 'How to top up account?',
-    answer: `1. Transfer money to our bank account
-2. Take a screenshot of the payment receipt
-3. Send the receipt via Telegram to @AdLanka
-4. Include your registered phone number in the message
-5. Admin will verify the payment
-6. Your balance will be updated within 24 hours
-7. You will see the updated balance in your dashboard`,
+    answer: `1. Transfer the desired amount to our bank account.
+2. Take a clear screenshot or photo of the payment receipt.
+3. Send the receipt to our official support handle @AdLanka on Telegram.
+4. Mention your registered phone number in the message.
+5. Once verified, your balance will be updated (usually within 24 hours).`,
   },
   {
     id: 'ad-types',

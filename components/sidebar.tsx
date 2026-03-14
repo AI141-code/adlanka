@@ -46,6 +46,34 @@ export function Sidebar({ selectedCategory, onSelectCategory, selectedType, onSe
         </button>
         {showGuide && (
           <div className="border-t border-border px-4 pb-4 pt-2">
+            <ol className="space-y-3 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="font-bold text-blue-600">1.</span>
+                <p>
+                  Start <a href="https://t.me/adlanka_otp_bot" target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline">@adlanka_otp_bot</a> on Telegram
+                </p>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-bold text-blue-600">2.</span>
+                <p>Send your number to the bot and login here with OTP</p>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-bold text-blue-600">3.</span>
+                <p>Transfer money & send receipt to <span className="font-medium text-foreground">@AdLanka</span> on Telegram</p>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-bold text-blue-600">4.</span>
+                <p>Click "Post Ad" once your balance is updated</p>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-bold text-blue-600">5.</span>
+                <p>Admin will review and your ad will be live!</p>
+              </li>
+            </ol>
+          </div>
+        )}
+        {/* {showGuide && (
+          <div className="border-t border-border px-4 pb-4 pt-2">
             <ol className="space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <span className="font-medium text-blue-600">1.</span>
@@ -73,7 +101,7 @@ export function Sidebar({ selectedCategory, onSelectCategory, selectedType, onSe
               </li>
             </ol>
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Categories */}

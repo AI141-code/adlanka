@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Phone, Key, AlertCircle, MessageCircle, Shield } from 'lucide-react'
+import { Phone, Key, AlertCircle, MessageCircle, Shield, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(false)
 
   // Redirect if already logged in (must be in effect, not render)
   useEffect(() => {
@@ -110,7 +111,7 @@ export default function LoginPage() {
               )}
             </div>
             <CardTitle>
-              {step === 'phone' && 'Login to AdLanka'}
+              {step === 'phone' && 'Login/Register to AdLanka'}
               {step === 'otp' && 'Enter OTP Code'}
               {step === 'admin' && 'Admin Login'}
             </CardTitle>
@@ -129,7 +130,7 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            {step === 'phone' && (
+            {/* {step === 'phone' && (
               <form onSubmit={handlePhoneSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
@@ -155,6 +156,79 @@ export default function LoginPage() {
                   {isLoading ? 'Sending...' : 'Continue'}
                 </Button>
               </form>
+            )} */}
+
+            {step === 'phone' && (
+              <div className="space-y-6">
+              {/* Toggle Button */}
+                <button
+                  onClick={() => setShowInstructions(!showInstructions)}
+                  className="flex w-full items-center justify-between rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <HelpCircle className="h-4 w-4 text-blue-600" />
+                    <span>How to Login or Register?</span>
+                  </div>
+                  {showInstructions ? (
+                    <ChevronUp className="h-4 w-4 text-slate-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                  )}
+                </button>
+
+                {/* Collapsible Instruction Box */}
+                {showInstructions && (
+                  <div className="rounded-lg border bg-slate-50 p-4 text-sm shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="mb-3">
+                      <p className="font-semibold text-slate-900">New Users (Registration):</p>
+                      <ul className="mt-2 space-y-2">
+                        <li className="flex gap-2">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span>Search and start <a href="https://t.me/adlanka_otp_bot" target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline">@adlanka_otp_bot</a> on Telegram</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span>Send your phone number to the bot</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="border-t pt-3">
+                      <p className="font-semibold text-slate-900">Returning Users:</p>
+                      <p className="mt-1 text-slate-600 italic">
+                        Just enter your number below to receive your OTP via Telegram.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Phone Input Form */}
+                <form onSubmit={handlePhoneSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <div className="flex gap-2">
+                      <div className="flex h-10 w-16 items-center justify-center rounded-md border border-input bg-muted text-sm">
+                        +94
+                      </div>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="771234567"
+                        value={phone}
+                        onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
+                        className="flex-1"
+                        maxLength={9}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Enter 9 digits (e.g., 771234567)
+                    </p>
+                  </div>
+                  <Button type="submit" disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700">
+                    {isLoading ? 'Sending...' : 'Continue'}
+                  </Button>
+                </form>
+              </div>
             )}
 
             {step === 'otp' && (
@@ -162,10 +236,16 @@ export default function LoginPage() {
                 <Alert className="border-blue-200 bg-blue-50">
                   <MessageCircle className="h-4 w-4 text-blue-600" />
                   <AlertDescription className="text-blue-800">
+                    <strong>Check your Telegram app</strong>
+                    <br />
+                    We just sent a 6-digit verification code to you via the 
+                    <span className="font-semibold"> @adlanka_otp_bot</span>.
+                  </AlertDescription>
+                  {/* <AlertDescription className="text-blue-800">
                     <strong>Testing mode enabled.</strong>
                     <br />
                     Enter OTP: <code className="rounded bg-blue-100 px-1 font-mono">123456</code>
-                  </AlertDescription>
+                  </AlertDescription> */}
                 </Alert>
 
                 <div className="space-y-2">
@@ -241,12 +321,12 @@ export default function LoginPage() {
               </form>
             )}
 
-            <div className="mt-6 text-center text-sm text-muted-foreground">
+            {/* <div className="mt-6 text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{' '}
               <Link href="/login" className="text-blue-600 hover:underline">
                 Register with your phone
               </Link>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </main>
