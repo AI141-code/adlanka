@@ -77,19 +77,64 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params
   const supabase = createSupabaseServerClient()
 
+  // 1. Fetch the ad first to get the image URL
   const { data: existing, error: existingErr } = await supabase
     .from('ads')
-    .select('id,user_id')
+    .select('id, user_id, image_url')
     .eq('id', id)
     .single()
 
   if (existingErr) return NextResponse.json({ error: existingErr.message }, { status: 500 })
+  
+  // Authorization check
   if (!session.isAdmin && existing.user_id !== session.userId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // 2. NEW: Delete the image from Storage if it exists
+  if (existing.image_url) {
+    try {
+      // Extract the filename from the URL
+      // Assumes URL format: .../storage/v1/object/public/ad-images/FILENAME
+      const urlParts = existing.image_url.split('/')
+      const fileName = urlParts[urlParts.length - 1]
+
+      await supabase.storage
+        .from('ads-images')
+        .remove([fileName])
+    } catch (storageErr) {
+      console.error('Failed to delete image from storage:', storageErr)
+      // We don't stop the process; we still want to delete the ad row
+    }
+  }
+
+  // 3. Delete the ad row from the database
   const { error } = await supabase.from('ads').delete().eq('id', id)
+  
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  
   return NextResponse.json({ success: true })
 }
+// export async function DELETE(_req: Request, ctx: Ctx) {
+//   const session = await getSessionFromCookies()
+//   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+//   const { id } = await ctx.params
+//   const supabase = createSupabaseServerClient()
+
+//   const { data: existing, error: existingErr } = await supabase
+//     .from('ads')
+//     .select('id,user_id')
+//     .eq('id', id)
+//     .single()
+
+//   if (existingErr) return NextResponse.json({ error: existingErr.message }, { status: 500 })
+//   if (!session.isAdmin && existing.user_id !== session.userId) {
+//     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+//   }
+
+//   const { error } = await supabase.from('ads').delete().eq('id', id)
+//   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+//   return NextResponse.json({ success: true })
+// }
 
