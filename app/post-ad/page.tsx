@@ -24,6 +24,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { AlertCircle, Upload, X, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { compressImage } from '@/lib/image-utils'
 
 export default function PostAdPage() {
   const router = useRouter()
@@ -61,19 +62,42 @@ export default function PostAdPage() {
   const duration = AD_DURATIONS[adType]
   const hasInsufficientBalance = currentBalance < price
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0]
+  //   if (file) {
+  //     if (file.size > 5 * 1024 * 1024) {
+  //       setError('Image size must be less than 5MB')
+  //       return
+  //     }
+  //     setImageFile(file)
+  //     const reader = new FileReader()
+  //     reader.onloadend = () => {
+  //       setImagePreview(reader.result as string)
+  //     }
+  //     reader.readAsDataURL(file)
+  //   }
+  // }
+  
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image size must be less than 5MB')
-        return
+      // Show a "Processing..." toast or state if you want
+      try {
+        setError('')
+        
+        // 2. Compress the image before saving it to state
+        const compressed = await compressImage(file)
+        
+        setImageFile(compressed)
+  
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string)
+        }
+        reader.readAsDataURL(compressed)
+      } catch (err) {
+        setError('Failed to process image. Try a different one.')
       }
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
     }
   }
 

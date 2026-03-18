@@ -16,8 +16,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Missing file' }, { status: 400 })
   }
 
-  if (file.size > 5 * 1024 * 1024) {
-    return NextResponse.json({ error: 'Image size must be less than 5MB' }, { status: 400 })
+  // if (file.size > 5 * 1024 * 1024) {
+  //   return NextResponse.json({ error: 'Image size must be less than 5MB' }, { status: 400 })
+  // }
+
+  if (file.size > 1 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Image too large. Please try a smaller photo.' }, { status: 400 })
   }
 
   const allowed = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
