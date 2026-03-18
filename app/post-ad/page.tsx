@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { AlertCircle, Upload, X, CheckCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, Upload, X, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { compressImage } from '@/lib/image-utils'
@@ -39,7 +39,6 @@ export default function PostAdPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isCompressing, setIsCompressing] = useState(false) // New State
   const [currentBalance, setCurrentBalance] = useState(0)
 
   useEffect(() => {
@@ -48,34 +47,56 @@ export default function PostAdPage() {
     }
   }, [user])
 
-  if (!user) { router.push('/login'); return null; }
-  if (user.isAdmin) { router.push('/admin'); return null; }
+  // Redirect if not logged in or is admin
+  if (!user) {
+    router.push('/login')
+    return null
+  }
+
+  if (user.isAdmin) {
+    router.push('/admin')
+    return null
+  }
 
   const price = AD_PRICES[adType]
   const duration = AD_DURATIONS[adType]
   const hasInsufficientBalance = currentBalance < price
 
+  // const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0]
+  //   if (file) {
+  //     if (file.size > 5 * 1024 * 1024) {
+  //       setError('Image size must be less than 5MB')
+  //       return
+  //     }
+  //     setImageFile(file)
+  //     const reader = new FileReader()
+  //     reader.onloadend = () => {
+  //       setImagePreview(reader.result as string)
+  //     }
+  //     reader.readAsDataURL(file)
+  //   }
+  // }
+  
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // Show a "Processing..." toast or state if you want
       try {
         setError('')
-        setIsCompressing(true)
         
-        // 1. Compress
+        // 2. Compress the image before saving it to state
         const compressed = await compressImage(file)
+        
         setImageFile(compressed)
   
-        // 2. Preview
         const reader = new FileReader()
         reader.onloadend = () => {
           setImagePreview(reader.result as string)
-          setIsCompressing(false)
         }
         reader.readAsDataURL(compressed)
       } catch (err) {
-        setError('Failed to process image.')
-        setIsCompressing(false)
+        setError('Failed to process image. Try a different one.')
       }
     }
   }
@@ -83,34 +104,58 @@ export default function PostAdPage() {
   const removeImage = () => {
     setImagePreview(null)
     setImageFile(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (!category || !title.trim() || !description.trim()) {
-      setError('Please fill in all required fields.')
+    if (!category) {
+      setError('Please select a category')
+      return
+    }
+
+    if (!title.trim()) {
+      setError('Please enter a title')
+      return
+    }
+
+    if (!description.trim()) {
+      setError('Please enter a description')
+      return
+    }
+
+    if (hasInsufficientBalance) {
+      setError('Insufficient balance. Please top up your account.')
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      // 1. PRE-CHECK BALANCE (Server Side)
-      const checkRes = await fetch('/api/ads/check-balance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adType }),
-      })
-      const checkJson = await checkRes.json()
-      
-      if (!checkRes.ok) {
-        throw new Error(checkJson.error || 'Insufficient available balance.')
-      }
-      
-      // 2. UPLOAD IMAGE (Only if balance is okay)
+    // 2. NEW: PRE-CHECK BALANCE
+    // We call a small check to see if they REALLY have enough available balance
+    // before we waste bandwidth/storage on an image upload.
+    const checkRes = await fetch('/api/ads/check-balance', {
+      method: 'POST',
+      body: JSON.stringify({ adType }),
+    })
+    const checkJson = await checkRes.json()
+    
+    if (!checkRes.ok) {
+      throw new Error(checkJson.error || 'Insufficient balance for this ad type.')
+    }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'An error occurred. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+
+    
+    try {
       let uploadedUrl: string | null = null
       if (imageFile) {
         const form = new FormData()
@@ -121,7 +166,6 @@ export default function PostAdPage() {
         uploadedUrl = json.url as string
       }
 
-      // 3. CREATE AD
       const newAd = await createAd(
         user.id,
         category as Category,
@@ -133,13 +177,13 @@ export default function PostAdPage() {
 
       if (newAd) {
         refreshUser()
-        toast.success('Ad submitted successfully!')
+        toast.success('Ad submitted successfully! It will be reviewed by admin.')
         router.push('/dashboard')
       } else {
-        throw new Error('Failed to create ad. Please try again.')
+        setError('Failed to create ad. Please try again.')
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred.')
+      setError(e instanceof Error ? e.message : 'An error occurred. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -148,12 +192,15 @@ export default function PostAdPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
+
       <main className="container mx-auto flex-1 px-4 py-6">
         <div className="mx-auto max-w-2xl">
           <Card>
             <CardHeader>
               <CardTitle>Post New Ad</CardTitle>
-              <CardDescription>Ads will be reviewed before going live.</CardDescription>
+              <CardDescription>
+                Fill in the details below to post your ad. Ads will be reviewed before going live.
+              </CardDescription>
             </CardHeader>
 
             <CardContent>
@@ -167,65 +214,168 @@ export default function PostAdPage() {
               <div className="mb-6 rounded-lg bg-muted p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Your Balance:</span>
-                  <span className={cn("font-semibold", hasInsufficientBalance ? "text-destructive" : "text-green-600")}>
+                  <span className={cn(
+                    "font-semibold",
+                    hasInsufficientBalance ? "text-destructive" : "text-green-600"
+                  )}>
                     Rs {currentBalance.toLocaleString()}
                   </span>
                 </div>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Category & Ad Type UI remains same... */}
-                {/* [Title and Description fields remain same...] */}
+                {/* Category */}
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category *</Label>
+                  <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                {/* Updated Image Upload UI */}
+                {/* Ad Type */}
+                <div className="space-y-3">
+                  <Label>Ad Type *</Label>
+                  <RadioGroup
+                    value={adType}
+                    onValueChange={(v) => setAdType(v as AdType)}
+                    className="grid gap-3 sm:grid-cols-3"
+                  >
+                    {(['normal', 'super', 'vip'] as AdType[]).map((type) => (
+                      <label
+                        key={type}
+                        className={cn(
+                          'flex cursor-pointer flex-col rounded-lg border-2 p-4 transition-colors',
+                          adType === type
+                            ? type === 'vip'
+                              ? 'border-green-500 bg-green-50'
+                              : type === 'super'
+                              ? 'border-yellow-500 bg-yellow-50'
+                              : 'border-blue-500 bg-blue-50'
+                            : 'border-border hover:bg-muted'
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <RadioGroupItem value={type} id={type} />
+                          <span className="font-medium capitalize">{type}</span>
+                        </div>
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          <p>Rs {AD_PRICES[type].toLocaleString()}</p>
+                          <p>{AD_DURATIONS[type]} days</p>
+                        </div>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {/* Title */}
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title *</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter ad title"
+                    maxLength={100}
+                  />
+                  <p className="text-xs text-muted-foreground">{title.length}/100</p>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description *</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe your ad in detail..."
+                    rows={5}
+                    maxLength={1000}
+                  />
+                  <p className="text-xs text-muted-foreground">{description.length}/1000</p>
+                </div>
+
+                {/* Image Upload */}
                 <div className="space-y-2">
                   <Label>Photo (Optional)</Label>
                   {imagePreview ? (
                     <div className="relative inline-block">
-                      <img src={imagePreview} alt="Preview" className="h-40 w-40 rounded-lg object-cover" />
-                      <button type="button" onClick={removeImage} className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-40 w-40 rounded-lg object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground"
+                      >
                         <X className="h-4 w-4" />
                       </button>
                     </div>
                   ) : (
                     <div
-                      onClick={() => !isCompressing && fileInputRef.current?.click()}
-                      className={cn(
-                        "flex h-40 w-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border transition-all",
-                        isCompressing ? "opacity-50 cursor-wait bg-muted" : "hover:border-primary hover:bg-muted"
-                      )}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex h-40 w-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-muted"
                     >
-                      {isCompressing ? (
-                        <>
-                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                          <span className="mt-2 text-xs font-medium">Compressing...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-8 w-8 text-muted-foreground" />
-                          <span className="mt-2 text-sm text-muted-foreground">Upload Image</span>
-                        </>
-                      )}
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <span className="mt-2 text-sm text-muted-foreground">Upload Image</span>
                     </div>
                   )}
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" disabled={isCompressing} />
-                  <p className="text-xs text-muted-foreground">Images are automatically optimized to save data.</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-muted-foreground">Max 5MB. JPG, PNG, or GIF.</p>
                 </div>
 
-                {/* Summary Section remains same... */}
+                {/* Summary */}
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <h3 className="mb-3 font-semibold">Summary</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Ad Type:</span>
+                      <span className="capitalize">{adType}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Duration:</span>
+                      <span>{duration} days</span>
+                    </div>
+                    <div className="flex justify-between border-t border-border pt-2">
+                      <span className="font-medium">Total:</span>
+                      <span className="font-semibold">Rs {price.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {hasInsufficientBalance && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Insufficient balance. You need Rs {(price - currentBalance).toLocaleString()} more.
+                      Please top up your account via Telegram.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <Button
                   type="submit"
-                  disabled={isSubmitting || isCompressing || hasInsufficientBalance}
+                  disabled={isSubmitting || hasInsufficientBalance}
                   className="w-full bg-blue-600 hover:bg-blue-700"
                 >
                   {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : isCompressing ? (
-                    'Processing Image...'
+                    'Submitting...'
                   ) : (
                     <>
                       <CheckCircle className="mr-2 h-4 w-4" />
@@ -238,6 +388,7 @@ export default function PostAdPage() {
           </Card>
         </div>
       </main>
+
       <Footer />
     </div>
   )
