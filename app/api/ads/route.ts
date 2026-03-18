@@ -33,6 +33,9 @@ export async function POST(req: Request) {
 
   const supabase = createSupabaseServerClient()
 
+  // --- NEW BALANCE LOCK LOGIC START ---
+  
+  // 1. Fetch user balance
   const { data: user, error: userErr } = await supabase
     .from('users')
     .select('id,balance')
@@ -40,7 +43,37 @@ export async function POST(req: Request) {
     .single()
 
   if (userErr) return NextResponse.json({ error: userErr.message }, { status: 500 })
-  if ((user.balance ?? 0) < price) return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 })
+
+  // 2. Fetch costs of all ads currently waiting for admin approval
+  const { data: pendingAds, error: pendingErr } = await supabase
+    .from('ads')
+    .select('price')
+    .eq('user_id', session.userId)
+    .eq('status', 'pending')
+
+  if (pendingErr) return NextResponse.json({ error: pendingErr.message }, { status: 500 })
+
+  // 3. Calculate "Blocked" funds and true Available Balance
+  const blockedFunds = (pendingAds || []).reduce((sum, ad) => sum + (ad.price || 0), 0)
+  const availableBalance = (user.balance ?? 0) - blockedFunds
+
+  // 4. Final check: Can they afford this new ad PLUS their pending ones?
+  if (availableBalance < price) {
+    return NextResponse.json({ 
+      error: `Insufficient available balance. You have Rs ${blockedFunds.toLocaleString()} locked in pending ads.` 
+    }, { status: 400 })
+  }
+
+  // --- NEW BALANCE LOCK LOGIC END ---
+  
+  // const { data: user, error: userErr } = await supabase
+  //   .from('users')
+  //   .select('id,balance')
+  //   .eq('id', session.userId)
+  //   .single()
+
+  // if (userErr) return NextResponse.json({ error: userErr.message }, { status: 500 })
+  // if ((user.balance ?? 0) < price) return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 })
 
   const { data: ad, error } = await supabase
     .from('ads')
