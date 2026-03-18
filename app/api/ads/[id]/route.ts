@@ -93,20 +93,28 @@ export async function DELETE(_req: Request, ctx: Ctx) {
 
   // 2. NEW: Delete the image from Storage if it exists
   if (existing.image_url) {
-    try {
-      // Extract the filename from the URL
-      // Assumes URL format: .../storage/v1/object/public/ad-images/FILENAME
-      const urlParts = existing.image_url.split('/')
-      const fileName = urlParts[urlParts.length - 1]
-
-      await supabase.storage
-        .from('ads-images')
-        .remove([fileName])
-    } catch (storageErr) {
-      console.error('Failed to delete image from storage:', storageErr)
-      // We don't stop the process; we still want to delete the ad row
+    const parts = existing.image_url.split('ads-images/');
+    const fullPath = parts.length > 1 ? parts[1] : null;
+  
+    if (fullPath) {
+      await supabase.storage.from('ads-images').remove([fullPath]);
     }
   }
+  // if (existing.image_url) {
+  //   try {
+  //     // Extract the filename from the URL
+  //     // Assumes URL format: .../storage/v1/object/public/ad-images/FILENAME
+  //     const urlParts = existing.image_url.split('/')
+  //     const fileName = urlParts[urlParts.length - 1]
+
+  //     await supabase.storage
+  //       .from('ads-images')
+  //       .remove([fileName])
+  //   } catch (storageErr) {
+  //     console.error('Failed to delete image from storage:', storageErr)
+  //     // We don't stop the process; we still want to delete the ad row
+  //   }
+  // }
 
   // 3. Delete the ad row from the database
   const { error } = await supabase.from('ads').delete().eq('id', id)

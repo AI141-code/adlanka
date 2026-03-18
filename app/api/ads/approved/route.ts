@@ -16,18 +16,21 @@ export async function GET() {
     if (expiredAds && expiredAds.length > 0) {
       // 2. Filter out ads that actually have images and extract filenames
       const filesToDelete = expiredAds
-        .map(ad => {
-          if (!ad.image_url) return null
-          const parts = ad.image_url.split('/')
-          return parts[parts.length - 1]
-        })
-        .filter((name): name is string => !!name)
+      .map(ad => {
+        if (!ad.image_url) return null;
+        // This extracts everything AFTER 'ads-images/' to get 'userId/filename.jpg'
+        const parts = ad.image_url.split('ads-images/');
+        return parts.length > 1 ? parts[1] : null;
+      })
+      .filter((path): path is string => !!path);
 
       // 3. Delete those images from the storage bucket
       if (filesToDelete.length > 0) {
-        await supabase.storage
-          .from('ads-images')
-          .remove(filesToDelete)
+        const { error: storageErr } = await supabase.storage
+          .from('ads-images') 
+          .remove(filesToDelete);
+        
+        if (storageErr) console.error('Storage Cleanup Error:', storageErr);
       }
 
       // 4. Delete the expired ad rows from the database
